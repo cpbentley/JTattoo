@@ -11,3 +11,5 @@
 /deploy.bat
 /src/main/java/com/jtattoo/plaf/custom/flx/
 /bin/
+.classpath
+.project
