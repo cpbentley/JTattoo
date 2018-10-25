@@ -13,7 +13,7 @@
 /bin/
 # eclipse specific git ignore
 .classpath
-.project
+#.project we want to share this file so its easier to import from github
 .settings/
 .metadata
 bin/**
