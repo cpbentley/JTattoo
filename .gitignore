@@ -11,5 +11,11 @@
 /deploy.bat
 /src/main/java/com/jtattoo/plaf/custom/flx/
 /bin/
+# eclipse specific git ignore
 .classpath
 .project
+.settings/
+.metadata
+bin/**
+local.properties
+.classpath
