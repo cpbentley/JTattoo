@@ -36,23 +36,47 @@ import javax.swing.event.MenuListener;
 import javax.swing.plaf.metal.MetalLookAndFeel;
 
 /**
- * Manages the look and feel of a set of {@link JFrame}.
+ * Integrates Themes and JTattoo into a {@link JFrame} based application and its {@link JMenuBar}.
  * <br>
- * <br>
- * Integrates Themes and JTattoo
- * <br>
- * Features:
+ * <p>
+ * <b>Features</b>:
  * <li>Add Look and Feel Items to the {@link JMenu}.
  * <li>On demand loading when the user selects the Look and Feel Menu.
  * <li>Menu localization
- * <li>Favorite list
- * <li>Simple visual test method with {@link LookFeelModule#main(String[])}
+ * <li>Favorite list: User can add or remove current look and feel in favorites. The list is saved in {@link Preferences}.
+ * <li>Simple visual test method with {@link JavaSkinManager#main(String[])}
  * <br>
- * 
+ * </p>
+ * <br>
+ * <p>
+ * <b>How to use</b>:
+ * <ol>
+ * <li> Create a new instance with a {@link Preferences}
+ * <li> Create a {@link JMenuBar}. <code> JMenuBar mb = new JMenuBar(); </code>. Add the menu bar to your {@link JFrame}
+ * <li> Add the {@link JavaSkinManager#getRootMenu()} to the {@link JMenuBar}
+ * <li> That's it!
+ * </ol>
+ * </p>
+ * <p>
+ * <b>String Localization</b>
+ * <br>
+ * By default, English Strings are hardcoded by default.<br>
+ * A real application will call the {@link JavaSkinManager#guiUpdate(ResourceBundle)}.
+ * <br>
+ * <br>
+ * The {@link ResourceBundle} must have the following keys
+ * <li> {@link JavaSkinManager#BUNDLE_KEY_FAV}
+ * <li> {@link JavaSkinManager#BUNDLE_KEY_FAV_ADD}
+ * <li> {@link JavaSkinManager#BUNDLE_KEY_FAV_REMOVE}
+ * <li> {@link JavaSkinManager#BUNDLE_KEY_MAIN_MENU}
+ * <li> {@link JavaSkinManager#BUNDLE_KEY_OTHERS}
+ * <li> {@link JavaSkinManager#BUNDLE_KEY_SYSTEM}
+ * </p>
  * @author Charles Bentley
+ * @version 1.0
  *
  */
-public class LookFeelModule implements ActionListener, MenuListener {
+public class JavaSkinManager implements ActionListener, MenuListener {
 
    public class LafAction extends AbstractAction {
 
@@ -197,8 +221,8 @@ public class LookFeelModule implements ActionListener, MenuListener {
    public static void main(String[] args) {
       javax.swing.SwingUtilities.invokeLater(new Runnable() {
          public void run() {
-            final Preferences prefs = Preferences.userNodeForPackage(LookFeelModule.class);
-            final LookFeelModule lfm = new LookFeelModule(prefs);
+            final Preferences prefs = Preferences.userNodeForPackage(JavaSkinManager.class);
+            final JavaSkinManager lfm = new JavaSkinManager(prefs);
             lfm.setIconSelected(new Icon() {
                public void paintIcon(Component c, Graphics g, int x, int y) {
                   g.setColor(Color.blue);
@@ -223,25 +247,49 @@ public class LookFeelModule implements ActionListener, MenuListener {
             JMenuBar mb = new JMenuBar();
             mb.add(lfm.getRootMenu());
             JMenu jm = new JMenu("Options");
-            final JRadioButtonMenuItem ji = new JRadioButtonMenuItem("Undecorated");
-            ji.addActionListener(new ActionListener() {
+            final JRadioButtonMenuItem jiUndecorated = new JRadioButtonMenuItem("Undecorated");
+            jiUndecorated.addActionListener(new ActionListener() {
                public void actionPerformed(ActionEvent e) {
                   boolean isDecorated = !jf.isUndecorated();
                   boolean isDecoSupport = JFrame.isDefaultLookAndFeelDecorated();
                   System.out.println("isDecorated=" + isDecorated + " isDecoSupport=" + isDecoSupport);
                   jf.dispose();
-                  jf.setUndecorated(!isDecorated);
+                  jf.setUndecorated(true);
                   jf.setVisible(true);
-                  ji.setSelected(jf.isUndecorated());
                }
             });
-            jm.add(ji);
+            final JRadioButtonMenuItem jiDecorated = new JRadioButtonMenuItem("Decorated");
+            jiDecorated.addActionListener(new ActionListener() {
+               public void actionPerformed(ActionEvent e) {
+                  boolean isUndecorated = jf.isUndecorated();
+                  if(isUndecorated) {
+                     jf.dispose();
+                     jf.setUndecorated(false);
+                     jf.setVisible(true);
+                  }
+               }
+            });
+            ButtonGroup group = new ButtonGroup();
+            group.add(jiDecorated);
+            group.add(jiUndecorated);
+            jm.add(jiDecorated);
+            jm.add(jiUndecorated);
+            
             mb.add(jm);
             jf.setJMenuBar(mb);
+            
             JButton but = new JButton("Hello World!");
             jf.getContentPane().add(but);
             jf.pack();
+            jf.setSize(300, 200);
+            jf.setLocation(400, 400);
             jf.setVisible(true);
+            
+            if(jf.isUndecorated()) {
+               jiUndecorated.setSelected(true);
+            } else {
+               jiDecorated.setSelected(true);
+            }
          }
       });
    }
@@ -249,7 +297,7 @@ public class LookFeelModule implements ActionListener, MenuListener {
    /**
     * Current active Laf as an {@link Action}.
     * <br>
-    * Will be initialized by {@link LookFeelModule#populateLookAndFeelMenu(JMenu)}
+    * Will be initialized by {@link JavaSkinManager#populateLookAndFeelMenu(JMenu)}
     */
    private LafAction            currentAction;
 
@@ -295,11 +343,13 @@ public class LookFeelModule implements ActionListener, MenuListener {
 
    private ArrayList<LafAction> myLafActions = new ArrayList<>();
 
+   private Preferences          prefsInit;
+
    /**
     * Upon creation, module looks for installed/accessible look and feels.
     * 
     */
-   public LookFeelModule(Preferences prefs) {
+   public JavaSkinManager(Preferences prefs) {
       //the very first thing we need to do is read the preference and set the look and feel
       prefsInit(prefs);
 
@@ -665,6 +715,7 @@ public class LookFeelModule implements ActionListener, MenuListener {
    private void prefsInit(Preferences prefs) {
       if (prefs == null)
          return;
+      prefsInit = prefs;
       String lookFeelClassName = prefs.get(PREF_LOOKANDFEEL, "");
       String lookFeelTheme = prefs.get(PREF_LOOKANDFEEL_THEME, "");
       favoriteString = prefs.get(PREF_LOOKANDFEEL_FAV, "");
@@ -699,6 +750,13 @@ public class LookFeelModule implements ActionListener, MenuListener {
             e.printStackTrace();
          }
       }
+   }
+
+   /**
+    * Save LnF current state using {@link Preferences} object loaded at start.
+    */
+   public void prefsSave() {
+      prefsInit(prefsInit);
    }
 
    public void prefsSave(Preferences prefs) {
@@ -866,16 +924,16 @@ public class LookFeelModule implements ActionListener, MenuListener {
     * Optional. By default, all widgets have been initialized with English strings.
     * <br>
     * Valid bundle with the following keys
-    * <li> {@link LookFeelModule#BUNDLE_KEY_FAV}
-    * <li> {@link LookFeelModule#BUNDLE_KEY_FAV_ADD}
-    * <li> {@link LookFeelModule#BUNDLE_KEY_FAV_REMOVE}
-    * <li> {@link LookFeelModule#BUNDLE_KEY_MAIN_MENU}
-    * <li> {@link LookFeelModule#BUNDLE_KEY_OTHERS}
-    * <li> {@link LookFeelModule#BUNDLE_KEY_SYSTEM}
+    * <li> {@link JavaSkinManager#BUNDLE_KEY_FAV}
+    * <li> {@link JavaSkinManager#BUNDLE_KEY_FAV_ADD}
+    * <li> {@link JavaSkinManager#BUNDLE_KEY_FAV_REMOVE}
+    * <li> {@link JavaSkinManager#BUNDLE_KEY_MAIN_MENU}
+    * <li> {@link JavaSkinManager#BUNDLE_KEY_OTHERS}
+    * <li> {@link JavaSkinManager#BUNDLE_KEY_SYSTEM}
     * 
     * @param resBundle
     */
-   public void updateGUI(ResourceBundle resBundle) {
+   public void guiUpdate(ResourceBundle resBundle) {
       menuRoot.setText(resBundle.getString(BUNDLE_KEY_MAIN_MENU));
       menuOthers.setText(resBundle.getString(BUNDLE_KEY_OTHERS));
       menuSystem.setText(resBundle.getString(BUNDLE_KEY_SYSTEM));
