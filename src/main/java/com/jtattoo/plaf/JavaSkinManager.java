@@ -78,6 +78,11 @@ import javax.swing.plaf.metal.MetalLookAndFeel;
  */
 public class JavaSkinManager implements ActionListener, MenuListener {
 
+   /**
+    * Each Theme menu items will be represented by a {@link LafAction}.
+    * @author Charles Bentley
+    *
+    */
    public class LafAction extends AbstractAction {
 
       /**
